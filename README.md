@@ -16,7 +16,11 @@ This data pipeline tracks changes such as new comments, views, likes, and replie
 - Sends alerts for specific changes (e.g., a comment mentioning you) to a Telegram bot.
 
 ## System Architecture
-Architecture Diagram Here
+
+![YouTube Comment Monitoring Architecture](https://github.com/user-attachments/assets/e620163d-0bf3-422b-b9bd-16472a67a1b3)
+
+
+
 
 ## Prerequisites
 - Python 3.8+
@@ -75,6 +79,9 @@ Architecture Diagram Here
 * YouTube Data API: To fetch video and comment data.
 * Kafka: For streaming and processing events.
 * ksqlDB: For detecting changes in streaming data.
+* S3: For storage of historical data, new comments.
+* SNS: For alerting the user and triggering the lambda.
+* Lambda: For comment processing and parsing for content.
 * Telegram: For alert notifications.
 
 ## License
