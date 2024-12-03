@@ -8,9 +8,10 @@
 /dataSources.local.xml
 
 #Api Keys
-/api_key/
+/api_key
 /inspectionProfiles
-*.xml
-*.iml
+/.idea
 config.py
-
+.DS_Store
+/__pycache__
+/documentation
