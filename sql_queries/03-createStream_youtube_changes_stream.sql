@@ -1,0 +1,1 @@
+CREATE STREAM youtube_changes_stream WITH (KAFKA_TOPIC='youtube_changes', VALUE_FORMAT='avro');
