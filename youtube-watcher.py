@@ -5,6 +5,11 @@ import sys
 from pprint import pformat
 
 import requests
+from confluent_kafka import SerializingProducer
+from confluent_kafka.schema_registry import SchemaRegistryClient
+from confluent_kafka.schema_registry.avro import AvroSerializer
+from confluent_kafka.serialization import StringSerializer
+
 from config import config
 
 
@@ -70,17 +75,36 @@ def fetch_videos(google_api_key, video_id, page_token=None):
 
 def summarize(video):
     return {
-        "video_id": video['id'],
+        # "video_id": video['id'],
         "title": video['snippet'].get('title'),
-        "channel": video['snippet'].get('channelTitle', 0),
+        # "channel": video['snippet'].get('channelTitle', 0),
         "views": int(video['statistics'].get('viewCount', 0)),
-        "likes": video['statistics']['likeCount'],
         "comments": video['statistics']['commentCount'],
+        "likes": video['statistics']['likeCount'],
     }
 
 
+def on_delivery(err, record):
+    pass
+
+
+# To handle erroneous records
+
 def main():
     logging.info("START")
+
+    schema_registry_client = SchemaRegistryClient(config['schema_registry'])
+    youtube_videos_value_schema = schema_registry_client.get_latest_version('youtube_videos-value')
+
+    kafka_config = config['kafka'] | {
+        "key.serializer": StringSerializer(),
+        "value.serializer": AvroSerializer(
+            schema_registry_client,
+            youtube_videos_value_schema.schema.schema_str),
+    }
+
+    producer = SerializingProducer(kafka_config)
+
     google_api_key = config['google_api_key']
     youtube_playlist_id = config['youtube_playlist_id']
 
@@ -88,6 +112,20 @@ def main():
         video_id = video_items['contentDetails'].get('videoId')
         for video in fetch_videos(google_api_key, video_id):
             logging.info("Video information: %s", pformat(summarize(video)))
+
+            value = {
+                "TITLE": video['snippet'].get('title'),
+                "VIEWS": video['statistics'].get('viewCount', "0"),
+                "LIKES": int(video['statistics'].get('likeCount')),
+                "COMMENTS": int(video['statistics'].get('commentCount')),
+            }
+            producer.produce(
+                topic=config['topic'],
+                key=video_id,
+                value=value,
+                on_delivery=on_delivery
+            )
+    producer.flush()
 
 
 if __name__ == "__main__":
